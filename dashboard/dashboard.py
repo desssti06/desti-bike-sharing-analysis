@@ -2,12 +2,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
+import os
 
 # Judul Dashboard
 st.title("Dashboard Penyewaan Sepeda")
 
+df = pd.read_csv(os.path.join(os.path.dirname(__file__), "all_data.csv"))
 # Load dataset
-df = pd.read_csv("all_data.csv")
 
 col1, col2 = st.columns(2)
 
