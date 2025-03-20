@@ -7,102 +7,81 @@ import os
 # Judul Dashboard
 st.title("Dashboard Penyewaan Sepeda")
 
-df = pd.read_csv(os.path.join(os.path.dirname(__file__), "all_data.csv"))
 # Load dataset
+df = pd.read_csv(os.path.join(os.path.dirname(__file__), "all_data.csv"))
+df['dteday_x'] = pd.to_datetime(df['dteday_x'])
 
-col1, col2 = st.columns(2)
+# Mapping label musim dan cuaca
+season_labels = {1: 'Spring', 2: 'Summer', 3: 'Fall', 4: 'Winter'}
+weather_labels = {1: "Cerah", 2: "Berawan", 3: "Hujan Ringan", 4: "Hujan Deras"}
 
-### === VISUALISASI 1: Penyewaan Sepeda Berdasarkan Musim ===
-with col1:
-    season_labels = {1: 'Spring', 2: 'Summer', 3: 'Fall', 4: 'Winter'}
-    df['season_label'] = df['season_x'].map(season_labels)
-    df_season_avg = df.groupby('season_label')['cnt_y'].mean().reset_index()
-
-    custom_palette_season = {
-        'Spring': '#77DD77',  
-        'Summer': '#FFD700',  
-        'Fall': '#FF8C00',    
-        'Winter': '#1E90FF'  
-    }
-
-    fig, ax1 = plt.subplots(figsize=(10, 8))
-    sns.barplot(
-        x='season_label', 
-        y='cnt_y', 
-        hue='season_label', 
-        data=df_season_avg, 
-        palette=custom_palette_season, 
-        legend=False, 
-        ax=ax1
-    )
-
-    ax1.set_title("Rata-rata Penyewaan Sepeda Berdasarkan Musim" ,fontsize=15)
-    ax1.set_xlabel("Musim", fontsize=10)
-    ax1.set_ylabel("Rata-rata Penyewaan Sepeda", fontsize=10)
-
-    st.pyplot(fig)
-
-
-### === VISUALISASI 2: Penyewaan Sepeda Berdasarkan Kondisi Cuaca ===
-with col2:
-    weather_labels = {
-        1: "Cerah",
-        2: "Berawan",
-        3: "Hujan Ringan",
-        4: "Hujan Deras"
-    }
-
-    custom_palette_weather = {
-        "Cerah": "#F1C40F",        # Kuning
-        "Berawan": "#BDC3C7",      # Abu-abu
-        "Hujan Ringan": "#3498DB", # Biru
-        "Hujan Deras": "#2C3E50"   # Biru Tua
-    }
-
-    df["Cuaca"] = df["weathersit_x"].map(weather_labels)
-
-    df_cuaca_avg = df.groupby("Cuaca")["cnt_x"].mean().reset_index()
-
-    fig2, ax = plt.subplots(figsize=(10, 8))
-    sns.barplot(
-        x="Cuaca", 
-        y="cnt_x", 
-        hue="Cuaca",  
-        data=df_cuaca_avg, 
-        palette=custom_palette_weather, 
-        legend=False, 
-        ax=ax
-    )
-
-    ax.set_title("Rata-rata Penyewaan Sepeda Berdasarkan Kondisi Cuaca", fontsize=15)
-    ax.set_xlabel("Kondisi Cuaca", fontsize=10)
-    ax.set_ylabel("Rata-rata Jumlah Penyewaan", fontsize=10)
-    ax.grid(axis="y", linestyle="--", alpha=0.7)
-
-    st.pyplot(fig2)
-    
-### === VISUALISASI 3: Penyewaan Sepeda pada Hari Kerja vs Akhir Pekan ===
-day_labels = {0: 'Akhir Pekan', 1: 'Hari Kerja'}
-df['workingday_label'] = df['workingday_x'].map(day_labels)
-df_day_avg = df.groupby('workingday_label')['cnt_x'].mean().reset_index()
-
-custom_palette_day = {
-    'Hari Kerja': '#3498db',  
-    'Akhir Pekan': '#e74c3c'  
+# Warna untuk setiap musim
+custom_palette_season = {
+    'Spring': '#77DD77',  
+    'Summer': '#FFD700',  
+    'Fall': '#FF8C00',    
+    'Winter': '#1E90FF'  
 }
 
-fig1, ax2 = plt.subplots(figsize=(10, 5))
-sns.barplot(
-    x='workingday_label', 
-    y='cnt_x', 
-    hue='workingday_label', 
-    data=df_day_avg, 
-    palette=custom_palette_day, 
-    legend=False, 
-    ax=ax2
-)
+# Warna untuk setiap kondisi cuaca
+custom_palette_weather = {
+    "Cerah": "#F1C40F",        
+    "Berawan": "#BDC3C7",      
+    "Hujan Ringan": "#3498DB", 
+    "Hujan Deras": "#2C3E50"   
+}
 
+# Sidebar untuk filter interaktif
+st.sidebar.header("Filter Data")
+start_date = st.sidebar.date_input("Pilih Tanggal Awal", df["dteday_x"].min())
+end_date = st.sidebar.date_input("Pilih Tanggal Akhir", df["dteday_x"].max())
+selected_season_labels = st.sidebar.multiselect("Pilih Musim", options=list(season_labels.values()), default=list(season_labels.values()))
+selected_weather_labels = st.sidebar.multiselect("Pilih Kondisi Cuaca", options=list(weather_labels.values()), default=list(weather_labels.values()))
 
+# Konversi tanggal
+start_date = pd.to_datetime(start_date)
+end_date = pd.to_datetime(end_date)
+
+# Filter dataset
+df_filtered = df[(df["dteday_x"] >= start_date) & (df["dteday_x"] <= end_date)]
+df_filtered['Musim'] = df_filtered['season_x'].map(season_labels)
+df_filtered['Cuaca'] = df_filtered['weathersit_x'].map(weather_labels)
+df_filtered = df_filtered[df_filtered['Musim'].isin(selected_season_labels)]
+df_filtered = df_filtered[df_filtered['Cuaca'].isin(selected_weather_labels)]
+
+# === VISUALISASI 1: Penyewaan Sepeda Berdasarkan Musim ===
+df_season_avg = df_filtered.groupby('Musim', as_index=False)['cnt_x'].mean()
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.barplot(x='Musim', y='cnt_x', data=df_season_avg, palette=custom_palette_season, ax=ax)
+ax.set_title("Rata-rata Penyewaan Sepeda Berdasarkan Musim")
+ax.set_xlabel("Bulan")
+ax.set_ylabel("Jumlah Penyewaa")
+st.pyplot(fig)
+
+# === VISUALISASI 2: Penyewaan Sepeda Berdasarkan Kondisi Cuaca ===
+df_cuaca_avg = df_filtered.groupby("Cuaca")['cnt_x'].mean().reset_index()
+fig2, ax2 = plt.subplots(figsize=(10, 6))
+sns.barplot(x="Cuaca", y="cnt_x", data=df_cuaca_avg, palette=custom_palette_weather, ax=ax2)
+ax2.set_title("Rata-rata Penyewaan Sepeda Berdasarkan Kondisi Cuaca")
+ax2.set_xlabel("Cuaca")
+ax2.set_ylabel("Jumlah Penyewaa")
+st.pyplot(fig2)
+
+# === VISUALISASI 3: Tren Penyewaan Sepeda ===
+df_filtered["year"] = df_filtered["dteday_x"].dt.year
+df_filtered["month"] = df_filtered["dteday_x"].dt.month
+sewa_bulan = df_filtered.groupby(["year", "month"])["cnt_y"].sum().reset_index()
+
+fig3, ax3 = plt.subplots(figsize=(10, 5))
+for year in sewa_bulan["year"].unique():
+    subset = sewa_bulan[sewa_bulan["year"] == year]
+    ax3.plot(subset["month"], subset["cnt_y"], marker="o", label=str(year))
+
+ax3.set_title("Tren Penyewaan Sepeda")
+ax3.set_xlabel("Bulan")
+ax3.set_ylabel("Jumlah Penyewaa")
+ax3.legend()
+st.pyplot(fig3)
 
 ### === VISUALISASI 4: Korelasi Temperatur, Kelembaban, dan Penyewaan ===
 korelasi = df[['temp_x', 'hum_x', 'cnt_x']].corr()
@@ -113,7 +92,7 @@ sns.scatterplot(x=df["temp_x"], y=df["cnt_x"], alpha=0.6, color="red", label="Da
 sns.regplot(x=df["temp_x"], y=df["cnt_x"], line_kws={"color": "darkred"}, scatter=False, label="Regresi", ax=ax3[0])
 ax3[0].set_title("Temperatur vs Penyewaan", fontsize=14)
 ax3[0].set_xlabel("Temperatur", fontsize=12)
-ax3[0].set_ylabel("Jumlah Penyewaan", fontsize=12)
+ax3[0].set_ylabel("Jumlah Penyewaa", fontsize=12)
 ax3[0].tick_params(axis='x', rotation=45)
 ax3[0].grid(True, linestyle="--", alpha=0.7)
 ax3[0].legend()
@@ -123,7 +102,7 @@ sns.scatterplot(x=df["hum_x"], y=df["cnt_x"], alpha=0.6, color="blue", label="Da
 sns.regplot(x=df["hum_x"], y=df["cnt_x"], line_kws={"color": "darkblue"}, scatter=False, label="Regresi", ax=ax3[1])
 ax3[1].set_title("Kelembaban vs Penyewaan", fontsize=14)
 ax3[1].set_xlabel("Kelembaban", fontsize=12)
-ax3[1].set_ylabel("Jumlah Penyewaan", fontsize=12)
+ax3[1].set_ylabel("Jumlah Penyewaa", fontsize=12)
 ax3[1].tick_params(axis='x', rotation=45)
 ax3[1].grid(True, linestyle="--", alpha=0.7)
 ax3[1].legend()

@@ -1,21 +1,21 @@
 Dicoding Collection Dashboard Submission
 
 <!-- Setup Environment - Anaconda -->
-
-$env:Path += ";C:\Users\ASUS\Miniconda3\Scripts"
 conda create --name main-ds python=3.9
+conda init
 conda activate main-ds
 pip install jupyter
 pip install -r requirements.txt
-~jupyter-notebook .~
+jupyter-notebook .
 
 <!-- Setup Environment - Shell/Terminal -->
 
-mkdir submission
-cd submission
+mkdir desti-bike-sharing-analysis
+cd desti-bike-sharing-analysis
 pip install pipenv
 pipenv install
 pipenv shell
+pip install pipreqs
 python -m venv venv
 .\venv\Scripts\Activate
 pip install -r requirements.txt
