@@ -77,11 +77,38 @@ for year in sewa_bulan["year"].unique():
     subset = sewa_bulan[sewa_bulan["year"] == year]
     ax3.plot(subset["month"], subset["cnt_y"], marker="o", label=str(year))
 
+ax3.set_xticks(range(1, 13))
+ax3.set_xticklabels(["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"])
 ax3.set_title("Tren Penyewaan Sepeda")
 ax3.set_xlabel("Bulan")
 ax3.set_ylabel("Jumlah Penyewaa")
 ax3.legend()
+ax.grid(True)
 st.pyplot(fig3)
+
+### === VISUALISASI 4: Korelasi Temperatur, Kelembaban, dan Penyewaan ===
+korelasi = df[['temp_x', 'hum_x', 'cnt_x']].corr()
+fig3, ax3 = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
+
+# Plot 1: Hubungan Temperatur dengan Jumlah Penyewaan Sepeda
+sns.scatterplot(x=df["temp_x"], y=df["cnt_x"], alpha=0.6, color="red", label="Data", ax=ax3[0]) 
+sns.regplot(x=df["temp_x"], y=df["cnt_x"], line_kws={"color": "darkred"}, scatter=False, label="Regresi", ax=ax3[0])
+ax3[0].set_title("Temperatur vs Penyewaan", fontsize=14)
+ax3[0].set_xlabel("Temperatur", fontsize=12)
+ax3[0].set_ylabel("Jumlah Penyewaa", fontsize=12)
+ax3[0].tick_params(axis='x', rotation=45)
+ax3[0].grid(True, linestyle="--", alpha=0.7)
+ax3[0].legend()
+
+# Plot 2: Hubungan Kelembaban dengan Jumlah Penyewaan Sepeda
+sns.scatterplot(x=df["hum_x"], y=df["cnt_x"], alpha=0.6, color="blue", label="Data", ax=ax3[1])
+sns.regplot(x=df["hum_x"], y=df["cnt_x"], line_kws={"color": "darkblue"}, scatter=False, label="Regresi", ax=ax3[1])
+ax3[1].set_title("Kelembaban vs Penyewaan", fontsize=14)
+ax3[1].set_xlabel("Kelembaban", fontsize=12)
+ax3[1].set_ylabel("Jumlah Penyewaa", fontsize=12)
+ax3[1].tick_params(axis='x', rotation=45)
+ax3[1].grid(True, linestyle="--", alpha=0.7)
+ax3[1].legend()
 
 ### === VISUALISASI 4: Korelasi Temperatur, Kelembaban, dan Penyewaan ===
 korelasi = df[['temp_x', 'hum_x', 'cnt_x']].corr()
@@ -120,25 +147,6 @@ ax3[2].legend()
 plt.suptitle("Tren Penyewaan Sepeda (2011-2012)", fontsize=20)
 st.pyplot(fig3)
 
-df["year"] = pd.to_datetime(df["dteday_x"]).dt.year
-df["month"] = pd.to_datetime(df["dteday_x"]).dt.month
-sewa_bulan = df.groupby(["year", "month"])['cnt_y'].sum().reset_index()
-
-
-fig4, ax = plt.subplots(figsize=(10, 5))
-for year in [2011, 2012]:
-    subset = sewa_bulan[sewa_bulan["year"] == year]
-    ax.plot(subset["month"], subset["cnt_y"], marker="o", label=str(year))
-
-ax.set_title("Tren Penyewaan Sepeda (2011-2012)")
-ax.set_xlabel("Bulan")
-ax.set_ylabel("Jumlah Penyewaan")
-ax.set_xticks(range(1, 13))
-ax.set_xticklabels(["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"])
-ax.legend()
-ax.grid(True)
-
-st.pyplot(fig4)
 
 df['dteday_x'] = pd.to_datetime(df['dteday_x'])
 latest_date = df['dteday_x'].max()
