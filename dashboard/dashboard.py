@@ -16,28 +16,6 @@ season_labels = {1: 'Spring', 2: 'Summer', 3: 'Fall', 4: 'Winter'}
 weather_labels = {1: "Cerah", 2: "Berawan", 3: "Hujan Ringan", 4: "Hujan Deras"}
 day_labels = {0: "Akhir Pekan", 1: "Hari Kerja"}
 
-# Warna untuk setiap musim
-custom_palette_season = {
-    'Spring': '#77DD77',  
-    'Summer': '#FFFF00',  
-    'Fall': '#FF8C00',    
-    'Winter': '#1E90FF'  
-}
-
-# Warna untuk setiap kondisi cuaca
-custom_palette_weather = {
-    "Cerah": "#FFFF00",        
-    "Berawan": "#BDC3C7",      
-    "Hujan Ringan": "#3498DB", 
-    "Hujan Deras": "#2C3E50"   
-}
-
-# Warna untuk setiap kondisi hari
-custom_palette_day = {
-    "Hari Kerja": "#1E90FF",        
-    "Akhir Pekan":"#FF0000" 
-}
-
 # Sidebar untuk filter interaktif
 st.sidebar.header("Filter Data")
 selected_season_labels = st.sidebar.multiselect("Pilih Musim", options=list(season_labels.values()), default=list(season_labels.values()))
@@ -61,18 +39,20 @@ df_filtered = df_filtered[df_filtered['Cuaca'].isin(selected_weather_labels)]
 
 
 # === VISUALISASI 1: Penyewaa Sepeda Berdasarkan Musim ===
-df_season_avg = df_filtered.groupby('Musim', as_index=False)['cnt_x'].mean()
+df_season_avg = df_filtered.groupby('Musim', as_index=False)['cnt_x'].mean().reset_index()
+df_season_avg = df_season_avg.sort_values(by="cnt_x", ascending=True)
 fig, ax = plt.subplots(figsize=(10, 6))
-sns.barplot(x='Musim', y='cnt_x', data=df_season_avg, palette=custom_palette_season, ax=ax)
+sns.barplot(x='Musim', y='cnt_x', data=df_season_avg, palette=sns.color_palette("Blues", len(df_season_avg)), ax=ax)
 ax.set_title("Rata-rata Penyewaan Sepeda Berdasarkan Musim")
 ax.set_xlabel("Bulan")
 ax.set_ylabel("Jumlah Penyewaa")
 st.pyplot(fig)
 
 # VISUALISASI 2: Penyewaan Sepeda Berdasarkan Hari
-df_day_avg = df_filtered.groupby("Hari", as_index=False)["cnt_x"].mean()
+df_day_avg = df_filtered.groupby("Hari", as_index=False)["cnt_x"].mean().reset_index()
+df_day_avg = df_day_avg.sort_values(by="cnt_x", ascending=True)
 fig2, ax = plt.subplots(figsize=(10, 6))
-sns.barplot(x="Hari", y="cnt_x", data=df_day_avg, palette=custom_palette_day, ax=ax)
+sns.barplot(x="Hari", y="cnt_x", data=df_day_avg, palette=sns.color_palette("Blues", len(df_day_avg)), ax=ax)
 ax.set_title("Rata-rata Penyewaan Sepeda pada Hari Kerja vs Akhir Pekan")
 ax.set_xlabel("Jenis Hari")
 ax.set_ylabel("Rata-rata Penyewaan")
@@ -81,8 +61,9 @@ st.pyplot(fig2)
 
 # === VISUALISASI 3: Penyewaan Sepeda Berdasarkan Kondisi Cuaca ===
 df_cuaca_avg = df_filtered.groupby("Cuaca")['cnt_x'].mean().reset_index()
+df_cuaca_avg = df_cuaca_avg.sort_values(by="cnt_x", ascending=True)
 fig3, ax2 = plt.subplots(figsize=(10, 6))
-sns.barplot(x="Cuaca", y="cnt_x", data=df_cuaca_avg, palette=custom_palette_weather, ax=ax2)
+sns.barplot(x="Cuaca", y="cnt_x", data=df_cuaca_avg, palette=sns.color_palette("Blues", len(df_cuaca_avg)), ax=ax2)
 ax2.set_title("Rata-rata Penyewaan Sepeda Berdasarkan Kondisi Cuaca")
 ax2.set_xlabel("Cuaca")
 ax2.set_ylabel("Jumlah Penyewaa")
@@ -145,54 +126,47 @@ plt.suptitle("Korelasi Temperatur, Kelembaban, dan Penyewaan", fontsize=20)
 st.pyplot(fig5)
 
 
-### === VISUALISASI 5: Analisis RFM ===
-df['dteday_x'] = pd.to_datetime(df['dteday_x'])
-latest_date = df['dteday_x'].max()
+### === VISUALISASI 5: Analisis Lanjutan : Clusterring ===
 
-# Hitung RFM berdasarkan tanggal
-rfm = df.groupby('dteday_x').agg(
-    Recency=('dteday_x', lambda x: (latest_date - x.max()).days),
-    Frequency=('cnt_y', 'count'),
-    Monetary=('cnt_y', 'sum')
-).reset_index()
+# Fungsi kategorisasi waktu
+def categorize_time(hour):
+    if 6 <= hour < 10:
+        return "Pagi"
+    elif 10 <= hour < 14:
+        return "Siang"
+    elif 14 <= hour < 18:
+        return "Sore"
+    else:
+        return "Malam"
 
-# Buat figure untuk subplot
-fig5, ax = plt.subplots(nrows=1, ncols=3, figsize=(30, 6))
-colors = ["#72BCD4"] * 5
+df["Waktu"] = df["hr"].apply(categorize_time)
 
-# Bar plot untuk Recency
+ratarata_kategori_waktu= df.groupby("Waktu")["cnt_y"].mean()
+
+ratarata_kategori_waktu = ratarata_kategori_waktu.reset_index()
+ratarata_kategori_waktu = ratarata_kategori_waktu.sort_values(by="cnt_y", ascending=True)
+num_colors = len(ratarata_kategori_waktu)
+color_palette = sns.color_palette("Blues", num_colors + 2)[1:]  
+colors = dict(zip(ratarata_kategori_waktu["Waktu"], color_palette))
+
+# Membuat figure
+fig6, ax = plt.subplots(figsize=(5, 3))
+
+# Membuat barplot
 sns.barplot(
-    y="Recency", x="dteday_x", hue="dteday_x",
-    data=rfm.sort_values(by="Recency", ascending=True).head(5),
-    palette=colors, ax=ax[0], legend=False
+    x="Waktu", 
+    y="cnt_y", 
+    hue="Waktu",
+    data=ratarata_kategori_waktu, 
+    palette=colors, 
+    legend=False,
+    ax=ax
 )
-ax[0].set_title("5 Hari Terbaru Sewa Sepeda", fontsize=18)
-ax[0].set_xlabel("Tanggal")
-ax[0].set_ylabel("Hari Sejak Terakhir Sewa")
-ax[0].tick_params(axis='x', labelsize=12, rotation=45)
 
-# Bar plot untuk Frequency
-sns.barplot(
-    y="Frequency", x="dteday_x", hue="dteday_x",
-    data=rfm.sort_values(by="Frequency", ascending=False).head(5),
-    palette=colors, ax=ax[1], legend=False
-)
-ax[1].set_title("5 Hari dengan Sewa Terbanyak", fontsize=18)
-ax[1].set_xlabel("Tanggal")
-ax[1].set_ylabel("Jumlah Penyewaan per Hari")
-ax[1].tick_params(axis='x', labelsize=12, rotation=45)
+# Mengatur tampilan plot
+ax.set_title("Rata-rata Penyewaan Sepeda Berdasarkan Kategori Waktu", fontsize=10)
+ax.set_xlabel("Kategori Waktu", fontsize=8)
+ax.set_ylabel("Rata-rata Jumlah Penyewaan", fontsize=8)
 
-# Bar plot untuk Monetary
-sns.barplot(
-    y="Monetary", x="dteday_x", hue="dteday_x",
-    data=rfm.sort_values(by="Monetary", ascending=False).head(5),
-    palette=colors, ax=ax[2], legend=False
-)
-ax[2].set_title("5 Hari dengan Pendapatan Tertinggi", fontsize=18)
-ax[2].set_xlabel("Tanggal")
-ax[2].set_ylabel("Total Penyewaan per Hari")
-ax[2].tick_params(axis='x', labelsize=12, rotation=45)
-
-plt.suptitle("Analisis RFM Penyewaan Sepeda", fontsize=25)
-
-st.pyplot(fig5)
+# Menampilkan plot di Streamlit
+st.pyplot(fig6)
